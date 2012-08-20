@@ -1,0 +1,343 @@
+\input texinfo   @c -*-texinfo-*-
+@afourpaper
+@setfilename ecmdb.info
+@documentlanguage en
+@documentencoding UTF-8
+@include version.texi
+@settitle ecmdb @value{VERSION}
+
+@copying
+This manual was last updated @value{UPDATED} for version
+@value{VERSION} of ecmdb.
+
+Copyright @copyright{} 2012
+Computer Graphics Group, University of Siegen, Germany.
+Written by Martin Lambers (@email{martin.lambers@@uni-siegen.de}).
+See @url{http://www.cg.informatik.uni-siegen.de/} for contact information.
+
+@quotation
+Copying and distribution of this file and the accompanying media files, with or
+without modification, are permitted in any medium without royalty provided the
+copyright notice and this notice are preserved. These files are offered as-is,
+without any warranty.
+@end quotation
+@end copying
+
+@dircategory Individual utilities
+@direntry
+* ecmdb: (ecmdb).         A tool to create and manage ECM databases.
+@end direntry
+
+@finalout
+@titlepage
+@title ecmdb
+@subtitle A tool to create and manage ECM databases.
+@subtitle Version @value{VERSION}, @value{UPDATED}
+@author Martin Lambers
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@ifnothtml
+@contents
+@end ifnothtml
+
+@ifnottex
+@node Top
+@top ecmdb
+@insertcopying
+@end ifnottex
+
+@ifhtml
+Short Contents:
+@end ifhtml
+@menu
+* Introduction::
+* Data Sets For Earth::
+* Data Sets For Moon::
+* Data Sets For Mars::
+@end menu
+@ifhtml
+@contents
+@end ifhtml
+
+@node Introduction
+@chapter Introduction
+
+ecmdb is a tool to create and manage ECM databases.
+
+ECM (Ellipsoidal Cube Map) databases store data for the surface of a planetary
+object, for example photos and elevation models of Earth, Moon, or Mars.
+An ECM database can be used by a rendering program to efficiently display
+huge data sets.
+
+For more information about ECM, see @url{http://www.cg.informatik.uni-siegen.de/visualization-remote-sensing-data}.
+
+Building an ECM database is expensive. To make best use of multi-processor systems and clusters,
+this task is split into multiple steps:
+@enumerate
+@item Create a database.@*
+Use the command @code{ecmdb create} to create a database. This step defines the
+database category (e.g. elevation or texture data), its maximum resolution, and
+the ellipsoid for which it provides data.@*
+See @code{ecmdb create --help} for more information. To find the right maximum
+resolution, see @code{ecmdb resolutions --help}.
+@item Add input files to the database.@*
+Use the command @code{ecmdb add} to add input files to your data base. The
+input files must contain georeference information. They can be in any format
+that @url{http://gdal.org/,GDAL} understands.@*
+If multiple input files are given, this command will automatically use all
+processors in a multi-processor system to add them in parallel.
+Additionally, this command can be run simultaneously on multiple cluster nodes
+to add many files to the same database in parallel.@*
+See @code{ecmdb add --help} for more information.
+@item Commit all added input files to the database.@*
+Before added input files can be used, you need to commit them to the database
+using the command @code{ecmdb commit}.@*
+This command will automatically use all processors in a multi-processor system.
+Only one @code{commit} command can be used on a given database at any given time,
+but you can still run more @code{add} commands in parallel or after the
+@code{commit} command; you just need to rerun @code{commit} afterwards to use th
+new files.@*
+See @code{ecmdb commit --help} for more information.
+@item Finalize a database.@*
+Once all relevant input files are committed to a database, you can optionally
+run the command @code{ecmdb finalize} to remove all management information from
+the database and save disk space. Note that you cannot add or commit more input
+files to finalized database.@*
+See @code{ecmdb finalize --help} for more information.
+@end enumerate
+
+@node Data Sets For Earth
+@chapter Data Sets For Earth
+
+@section NASA Blue Marble Next Generation
+
+@image{earth-bmng,,,,jpg}
+
+The @url{http://earthobservatory.nasa.gov/Features/BlueMarble/,BMNG data set}
+consists of 12 Earth surface images for the months of the year 2004, and an
+elevation model.
+
+Unfortunately the original files are not georeferenced. They need to be
+converted to single files first, which removes all opportunities for
+parallelization. Therefore, importing the BMNG data is much slower and more
+complex than importing other data sets.
+
+To build an ECM database from the image for January, do the following:
+@itemize
+@item Get all image tiles (A1, B1, C1, D1, A2, B2, C2, D2) for the January data set
+(@code{world.200401.3x21600x21600.*.png}) from @url{ftp://mirrors.arsc.edu/nasa/world_500m/}.
+@item Combine the tiles to a single image, and add proper georeference information:
+@example
+gta merge -d1 \
+  <(gta merge -d0 \
+    <(gta from-gdal world.200401.3x21600x21600.A1.png) \
+    <(gta from-gdal world.200401.3x21600x21600.B1.png) \
+    <(gta from-gdal world.200401.3x21600x21600.C1.png) \
+    <(gta from-gdal world.200401.3x21600x21600.D1.png) \
+    ) \
+  <(gta merge -d0 \
+    <(gta from-gdal world.200401.3x21600x21600.A2.png) \
+    <(gta from-gdal world.200401.3x21600x21600.B2.png) \
+    <(gta from-gdal world.200401.3x21600x21600.C2.png) \
+    <(gta from-gdal world.200401.3x21600x21600.D2.png) \
+    ) \
+  | gta to-netpbm gdaltmp.pnm
+gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 gdaltmp.pnm -co "COMPRESS=LZW" 200401.tiff
+rm gdaltmp.pnm
+@end example
+@item Create the database, add the file, commit, and finalize:
+@example
+ecmdb create   /ecmdb/bmng/200401 -E earth-wgs84 -q 512 -l 7 -C texture
+ecmdb add      /ecmdb/bmng/200401 200401.tiff
+ecmdb commit   /ecmdb/bmng/200401
+ecmdb finalize /ecmdb/bmng/200401
+@end example
+@end itemize
+
+To build an ECM database from the elevation model, do the following:
+@itemize
+@item Get the elevation data @url{ftp://mirrors.arsc.edu/nasa/topography/srtm_ramp2.world.86400x43200.bin.gz}.
+@item Convert it to a proper file format with georeference information:
+@example
+gzip -dc srtm_ramp2.world.86400x43200.bin.gz \
+  | gta from-raw -d 86400,43200 -c int16 -e big /dev/stdin \
+  | gta to-gdal tmp.tiff
+gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 -co "COMPRESS=LZW" tmp.tiff srtm_ramp2.world.86400x43200.tiff
+rm tmp.tiff
+@end example
+@item Create the database, add the file, commit, and finalize:
+@example
+ecmdb create   /ecmdb/bmng/elevation -E earth-wgs84 -q 512 -l 7 -C elevation
+ecmdb add      /ecmdb/bmng/elevation srtm_ramp2.world.86400x43200.tiff
+ecmdb commit   /ecmdb/bmng/elevation
+ecmdb finalize /ecmdb/bmng/elevation
+@end example
+@end itemize
+
+@section Natural Earth
+
+@image{earth-natearth,,,,jpg}
+
+Various artificial, low-resolution images of the Earth surface are available
+from the @url{http://www.naturalearthdata.com/downloads/10m-raster-data/,Natural Earth
+project}.
+
+The files provided by this project can be imported directly. For example:
+@example
+ecmdb create   /ecmdb/naturalearth/hyp-hr -E earth-wgs84 -q 512 -l 5 -C texture
+ecmdb add      /ecmdb/naturalearth/hyp-hr HYP_HR/HYP_HR.tif
+ecmdb commit   /ecmdb/naturalearth/hyp-hr
+ecmdb finalize /ecmdb/naturalearth/hyp-hr
+@end example
+
+@section CIAT SRTMv4
+
+@image{earth-srtm4,,,,jpg}
+
+The SRTM 90m Digital Elevation Database version 4 is available from @url{http://srtm.csi.cgiar.org/}.
+It provides elevation data for the land masses of Earth.
+
+First, get all the ZIP files from @url{ftp://xftp.jrc.it/pub/srtmV4/tiff/} and unzip them all.
+
+Then:
+@example
+ecmdb create   /ecmdb/srtm4 -E earth-wgs84 -q 512 -l 9 -C elevation
+ecmdb add      /ecmdb/srtm4 *.tif
+ecmdb commit   /ecmdb/srtm4
+ecmdb finalize /ecmdb/srtm4
+@end example
+
+(Note: it should be possible to add all files without unzipping them first via GDAL's support for ZIP
+file archives. Please update this information if you find out how this works.)
+
+@section Utah GIS portal
+
+@image{earth-utah,,,,jpg}
+
+The @url{http://gis.utah.gov/,Utah GIS portal} provides lots of great high-quality data sets.
+
+@subsection HRO 2006 Image Data
+
+This is a high-resolution (ca. 25 cm ground resolution) image data set stored in 3239 TIFF files. Get them all from 
+@url{ftp://ftp.agrc.utah.gov/Imagery/HRO2006/} (you only need the @code{.tif} files).
+
+One of the files has corrupt GeoTIFF headers. You can fix it with this command:
+@example
+gdal_translate -a_srs "epsg:26912" 12SWJ320760.tif fixed-12SWJ320760.tif
+mv fixed-12SWJ320760.tif 12SWJ320760.tif
+@end example
+
+Then build the ECM database:
+@example
+ecmdb create   /ecmdb/utah-hro2006 -E earth-wgs84 -q 512 -l 18 -C texture
+ecmdb add      /ecmdb/utah-hro2006 *.tif
+ecmdb commit   /ecmdb/utah-hro2006
+ecmdb finalize /ecmdb/utah-hro2006
+@end example
+
+You may want to run multiple concurrent @code{add} commands in a cluster because this will take some time!
+(With lossless compression, all steps took 114 hours and 54 minutes on a single Intel Core i7-930 machine.)
+
+@subsection 2m and 5m Elevation Models
+
+The Utah GIS portal provides various elevation models, e.g. a 2m model (at
+@url{ftp://ftp.agrc.utah.gov/DEM_2m/}) and a 5m model (at
+@url{ftp://ftp.agrc.utah.gov/Imagery/DEM_5m/}).
+
+To build a database from the 2m model:
+@example
+ecmdb create   /ecmdb/utah-2m -E earth-wgs84 -q 512 -l 15 -C elevation
+ecmdb add      /ecmdb/utah-2m --min=-9000 --max=+9000 --srs "+proj=utm +zone=12 +datum=NAD83" *.asc
+ecmdb commit   /ecmdb/utah-2m
+ecmdb finalize /ecmdb/utah-2m
+@end example
+
+For the 5m model, use @code{-l 14} for the @code{create} command due to the lower resolution.
+
+@node Data Sets For Moon
+@chapter Data Sets For Moon
+
+@section WAC Digital Terrain Model (DTM) 100 meters/pixel
+
+@image{moon-wacdtm,,,,jpg}
+
+This elevation model is available here: @url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}.
+Get the files @code{WAC_GLD100_*_100M.IMG} from @url{http://lroc.sese.asu.edu/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/WAC_DTM/}.
+
+Build an ECM database:
+@example
+ecmdb create   /ecmdb/moon-wac100m -E moon-nasa -q 512 -l 7 -C elevation
+ecmdb add      /ecmdb/moon-wac100m WAC_GLD100_*_100M.IMG
+ecmdb commit   /ecmdb/moon-wac100m
+ecmdb finalize /ecmdb/moon-wac100m
+@end example
+
+@node Data Sets For Mars
+@chapter Data Sets For Mars
+
+@section MOC Graylevel Images
+
+@image{mars-moc,,,,jpg}
+
+See @url{http://www.msss.com/mgcwg/mgm/}. Get all the data files @code{mcXX-256.img}, where XX ranges from 02 to 30.
+Additionally, get the file number 1, which uses only one digit: @code{mc1-256.img}.
+
+Build an ECM database:
+@example
+ecmdb create   /ecmdb/mars-moc -E mars-nasa -q 512 -l 7 -C texture -c 1
+ecmdb add      /ecmdb/mars-moc mc*-256.img
+ecmdb commit   /ecmdb/mars-moc
+ecmdb finalize /ecmdb/mars-moc
+@end example
+
+@section MOLA
+
+@image{mars-mola,,,,jpg}
+
+See @url{http://pds-geosciences.wustl.edu/missions/mgs/megdr.html}. You need
+the files @code{megt*.lbl} and @code{megt*.img}, preferably in the best available resolution.
+
+Unfortunately the original URL we used does not work anymore. Please find the new location and let us know.
+
+@section HiRISE
+
+@image{mars-hirise,,,,jpg}
+
+The @url{http://hirise.lpl.arizona.edu/,HiRISE project} provides high-resolution images of Mars.
+
+Unfortunately it is not easy to get the correct data files from their website. You have to click your way through.
+The files you need are high-resolution @code{.JP2} files. 
+
+The JPEG2000 format is poorly supported in general. I had to use the
+proprietary @url{http://www.kakadusoftware.com/,Kakadu software} to produce a
+TIFF file that is readable by all common tools:
+@example
+kdu_expand -i PSP_008648_1810_RED.JP2 -o PSP_008648_1810_RED.tiff
+@end example
+
+Since ECM databases do not yet support color definitions beyond 24 bit, you need to reduce the original
+colors to 24 bit:
+@example
+gta from-gdal PSP_008648_1810_RED.tiff \
+  | gta component-compute -e 'c0=c0/1023*255' \
+  | gta component-convert -c uint8 \
+  | gta compress -m bzip2 \
+  > PSP_008648_1810_RED.gta
+@end example
+
+Now you can import the file:
+@example
+ecmdb create   /ecmdb/mars-hirise -E mars-nasa -q 512 -l 16 -C texture -c 1
+ecmdb add      /ecmdb/mars-hirise --min 1 PSP_008648_1810_RED.gta
+ecmdb commit   /ecmdb/mars-hirise
+@end example
+
+(Note: if your version of GDAL does not support reading GTAs directly, you need to convert back to TIFF first.)
+
+You can add and commit more HiRISE images to the same database (even if they
+are from completely different locations) before finalizing it.
+
+@bye
