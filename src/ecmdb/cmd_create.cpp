@@ -22,8 +22,7 @@
 
 #include <limits>
 
-#include <ecm/ecm.h>
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "exc.h"
 #include "dbg.h"

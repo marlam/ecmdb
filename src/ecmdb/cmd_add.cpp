@@ -30,8 +30,7 @@
 #include <ogr_geometry.h>
 #include <gdalwarper.h>
 
-#include <ecm/ecm.h>
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "dbg.h"
 #include "msg.h"

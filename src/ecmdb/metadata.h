@@ -21,7 +21,7 @@
 #ifndef METADATA_H
 #define METADATA_H
 
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "blob.h"
 

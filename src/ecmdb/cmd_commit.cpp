@@ -28,8 +28,7 @@
 #include <cstring>
 #include <cmath>
 
-#include <ecm/ecm.h>
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "str.h"
 #include "msg.h"

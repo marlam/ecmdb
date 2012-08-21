@@ -22,8 +22,7 @@
 
 #include <string>
 
-#include <ecm/ecm.h>
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "msg.h"
 #include "str.h"

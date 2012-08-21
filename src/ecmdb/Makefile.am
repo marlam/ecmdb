@@ -24,7 +24,7 @@ ecmdb_SOURCES = \
 ecmdb_CPPFLAGS = \
 	-I$(top_srcdir)/src/base \
 	-I$(top_srcdir)/src/uuid \
-	$(libecm_CFLAGS) \
+	$(libecmdb_CFLAGS) \
 	$(libgdal_CFLAGS) \
 	-fopenmp
 
@@ -32,7 +32,7 @@ ecmdb_LDADD = \
 	../uuid/libuuid.la \
 	$(libuuid_LIBS) \
 	../base/libbase.la \
-	$(libecm_LIBS) \
+	$(libecmdb_LIBS) \
 	$(libgdal_LIBS) \
 	$(LIBICONV)
 

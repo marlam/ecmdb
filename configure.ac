@@ -18,7 +18,7 @@ dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 dnl Autotools init stuff
 AC_PREREQ([2.65])
-AC_INIT([ecmdb], [0.6.0], [martin.lambers@uni-siegen.de], [ecmdb], [http://www.cg.informatik.uni-siegen.de/])
+AC_INIT([ecmdb], [0.6.1], [martin.lambers@uni-siegen.de], [ecmdb], [http://www.cg.informatik.uni-siegen.de/])
 AC_CONFIG_SRCDIR([src/ecmdb/main.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -111,11 +111,11 @@ if test -z "$PKG_CONFIG"; then
     AC_MSG_WARN([please install pkg-config; Debian package: pkg-config])
 fi
 
-dnl libecm
-PKG_CHECK_MODULES([libecm], [ecm >= 0.0], [HAVE_LIBECM=1], [HAVE_LIBECM=0])
-if test "$HAVE_LIBECM" != "1"; then
-    AC_MSG_WARN([library libecm not found:])
-    AC_MSG_WARN([$libecm_PKG_ERRORS])
+dnl libecmdb
+PKG_CHECK_MODULES([libecmdb], [ecmdb >= 0.0], [HAVE_LIBECMDB=1], [HAVE_LIBECMDB=0])
+if test "$HAVE_LIBECMDB" != "1"; then
+    AC_MSG_WARN([library libecmdb not found:])
+    AC_MSG_WARN([$libecmdb_PKG_ERRORS])
 fi
 
 dnl UUID
@@ -149,7 +149,7 @@ fi
 
 dnl Check if all libraries were found
 if test -z "$PKG_CONFIG" \
-    -o "$HAVE_LIBECM" != "1" \
+    -o "$HAVE_LIBECMDB" != "1" \
     -o \( "$w32" != "yes" -a "$HAVE_LIBUUID" != "1" \) \
     -o "$HAVE_LIBGDAL" != "1" ; then
     AC_MSG_ERROR([One or more libraries were not found. See messages above.])

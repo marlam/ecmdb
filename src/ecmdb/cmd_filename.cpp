@@ -23,8 +23,7 @@
 #include <limits>
 #include <cmath>
 
-#include <ecm/ecm.h>
-#include <ecm/ecmdb.h>
+#include <ecmdb/ecmdb.h>
 
 #include "exc.h"
 #include "msg.h"
