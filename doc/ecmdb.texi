@@ -144,9 +144,9 @@ gta merge -d1 \
     <(gta from-gdal world.200401.3x21600x21600.C2.png) \
     <(gta from-gdal world.200401.3x21600x21600.D2.png) \
     ) \
-  | gta to-netpbm gdaltmp.pnm
-gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 gdaltmp.pnm -co "COMPRESS=LZW" 200401.tiff
-rm gdaltmp.pnm
+  | gta to-gdal gdaltmp.tiff
+gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 gdaltmp.tiff -co "COMPRESS=LZW" 200401.tiff
+rm gdaltmp.tiff
 @end example
 @item Create the database, add the file, commit, and finalize:
 @example
