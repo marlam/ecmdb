@@ -120,38 +120,25 @@ The @url{http://earthobservatory.nasa.gov/Features/BlueMarble/,BMNG data set}
 consists of 12 Earth surface images for the months of the year 2004, and an
 elevation model.
 
-Unfortunately the original files are not georeferenced. They need to be
-converted to single files first, which removes all opportunities for
-parallelization. Therefore, importing the BMNG data is much slower and more
-complex than importing other data sets.
-
 To build an ECM database from the image for January, do the following:
 @itemize
 @item Get all image tiles (A1, B1, C1, D1, A2, B2, C2, D2) for the January data set
-(@code{world.200401.3x21600x21600.*.png}) from @url{ftp://mirrors.arsc.edu/nasa/world_500m/}.
-@item Combine the tiles to a single image, and add proper georeference information:
+(@code{world.200401.3x21600x21600.*.jpg}) from @url{ftp://mirrors.arsc.edu/nasa/world_500m/}.
+@item Add metadata to make the files useful:
 @example
-gta merge -d1 \
-  <(gta merge -d0 \
-    <(gta from-gdal world.200401.3x21600x21600.A1.png) \
-    <(gta from-gdal world.200401.3x21600x21600.B1.png) \
-    <(gta from-gdal world.200401.3x21600x21600.C1.png) \
-    <(gta from-gdal world.200401.3x21600x21600.D1.png) \
-    ) \
-  <(gta merge -d0 \
-    <(gta from-gdal world.200401.3x21600x21600.A2.png) \
-    <(gta from-gdal world.200401.3x21600x21600.B2.png) \
-    <(gta from-gdal world.200401.3x21600x21600.C2.png) \
-    <(gta from-gdal world.200401.3x21600x21600.D2.png) \
-    ) \
-  | gta to-gdal gdaltmp.tiff
-gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 gdaltmp.tiff -co "COMPRESS=LZW" 200401.tiff
-rm gdaltmp.tiff
+gdal_translate -of VRT -a_srs WGS84 -a_ullr -180 90 -90   0 world.200401.3x21600x21600.A1.jpg 200401.A1.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr -180  0 -90 -90 world.200401.3x21600x21600.A2.jpg 200401.A2.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr  -90 90   0   0 world.200401.3x21600x21600.B1.jpg 200401.B1.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr  -90  0   0 -90 world.200401.3x21600x21600.B2.jpg 200401.B2.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr    0 90  90   0 world.200401.3x21600x21600.C1.jpg 200401.C1.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr    0  0  90 -90 world.200401.3x21600x21600.C2.jpg 200401.C2.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr   90 90 180   0 world.200401.3x21600x21600.D1.jpg 200401.D1.vrt
+gdal_translate -of VRT -a_srs WGS84 -a_ullr   90  0 180 -90 world.200401.3x21600x21600.D2.jpg 200401.D2.vrt
 @end example
-@item Create the database, add the file, commit, and finalize:
+@item Create the database, add the files, commit, and finalize:
 @example
 ecmdb create   /ecmdb/bmng/200401 -E earth-wgs84 -q 512 -l 7 -C texture
-ecmdb add      /ecmdb/bmng/200401 200401.tiff
+ecmdb add      /ecmdb/bmng/200401 200401.*.vrt
 ecmdb commit   /ecmdb/bmng/200401
 ecmdb finalize /ecmdb/bmng/200401
 @end example
@@ -160,18 +147,27 @@ ecmdb finalize /ecmdb/bmng/200401
 To build an ECM database from the elevation model, do the following:
 @itemize
 @item Get the elevation data @url{ftp://mirrors.arsc.edu/nasa/topography/srtm_ramp2.world.86400x43200.bin.gz}.
-@item Convert it to a proper file format with georeference information:
+@item Describe this raw binary file so that GDAL can read it. For this purpose, create a file
+@code{tmp-elevation.vrt} with the following contents:
 @example
-gzip -dc srtm_ramp2.world.86400x43200.bin.gz \
-  | gta from-raw -d 86400,43200 -c int16 -e big /dev/stdin \
-  | gta to-gdal tmp.tiff
-gdal_translate -a_srs WGS84 -a_ullr -180 90 180 -90 -co "COMPRESS=LZW" tmp.tiff srtm_ramp2.world.86400x43200.tiff
-rm tmp.tiff
+<VRTDataset rasterXSize="86400" rasterYSize="43200">
+  <VRTRasterBand dataType="Int16" band="1" subClass="VRTRawRasterBand">
+    <SourceFilename relativetoVRT="1">/vsigzip/srtm_ramp2.world.86400x43200.bin.gz</SourceFilename>
+    <ImageOffset>0</ImageOffset>
+    <PixelOffset>2</PixelOffset>
+    <LineOffset>172800</LineOffset>
+    <ByteOrder>MSB</ByteOrder>
+  </VRTRasterBand>
+</VRTDataset>
+@end example
+@item Add metadata to make the file useful:
+@example
+gdal_translate -of VRT -a_srs WGS84 -a_ullr -180 90 180 -90 tmp-elevation.vrt elevation.vrt
 @end example
 @item Create the database, add the file, commit, and finalize:
 @example
 ecmdb create   /ecmdb/bmng/elevation -E earth-wgs84 -q 512 -l 7 -C elevation
-ecmdb add      /ecmdb/bmng/elevation srtm_ramp2.world.86400x43200.tiff
+ecmdb add      /ecmdb/bmng/elevation elevation.vrt
 ecmdb commit   /ecmdb/bmng/elevation
 ecmdb finalize /ecmdb/bmng/elevation
 @end example
