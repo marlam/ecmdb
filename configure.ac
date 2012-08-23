@@ -133,10 +133,11 @@ else
 fi
 
 dnl GDAL
-GDALCONFIG=""
 AC_ARG_VAR([GDALCONFIG], [gdal-config command])
-AC_CHECK_TOOLS([GDALCONFIG], [gdal-config], [:])
-if test "$GDALCONFIG" != ":"; then
+if test -z "$GDALCONFIG"; then
+    AC_CHECK_TOOLS([GDALCONFIG], [gdal-config], [])
+fi
+if test -n "$GDALCONFIG"; then
     libgdal_CFLAGS="`$GDALCONFIG --cflags`"
     libgdal_LIBS="`$GDALCONFIG --libs`"
     AC_SUBST([libgdal_CFLAGS])
