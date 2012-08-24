@@ -295,9 +295,17 @@ ecmdb finalize /ecmdb/mars-moc
 @image{mars-mola,,,,jpg}
 
 See @url{http://pds-geosciences.wustl.edu/missions/mgs/megdr.html}. You need
-the files @code{megt*.lbl} and @code{megt*.img}, preferably in the best available resolution.
+the files @code{megt*.lbl} and @code{megt*.img} in the best available resolution.
+These can be found in the @code{MEG128} and @code{POLAR} directories. From the
+@code{POLAR} directory, you only need the @code{megt_?_512_1.*} files.
 
-Unfortunately the original URL we used does not work anymore. Please find the new location and let us know.
+Build an ECM database:
+@example
+ecmdb create   /ecmdb/mars-mola -E mars-nasa -q 512 -l 6 -C elevation
+ecmdb add      /ecmdb/mars-mola megt*.lbl
+ecmdb commit   /ecmdb/mars-mola
+ecmdb finalize /ecmdb/mars-mola
+@end example
 
 @section HiRISE
 
