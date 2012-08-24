@@ -196,18 +196,19 @@ ecmdb finalize /ecmdb/naturalearth/hyp-hr
 The SRTM 90m Digital Elevation Database version 4 is available from @url{http://srtm.csi.cgiar.org/}.
 It provides elevation data for the land masses of Earth.
 
-First, get all the ZIP files from @url{ftp://xftp.jrc.it/pub/srtmV4/tiff/} and unzip them all.
+First, get all the ZIP files from @url{ftp://xftp.jrc.it/pub/srtmV4/tiff/}. You don't need to unzip them;
+instead, you can build a list of special file names that allow GDAL to read the ZIP contents directly:
+@example
+for i in *.zip; do echo /vsizip/$i/`basename $i .zip`.tif; done > addlist.txt
+@end example
 
 Then:
 @example
 ecmdb create   /ecmdb/srtm4 -E earth-wgs84 -q 512 -l 9 -C elevation
-ecmdb add      /ecmdb/srtm4 *.tif
+ecmdb add      /ecmdb/srtm4 `cat addlist.txt`
 ecmdb commit   /ecmdb/srtm4
 ecmdb finalize /ecmdb/srtm4
 @end example
-
-(Note: it should be possible to add all files without unzipping them first via GDAL's support for ZIP
-file archives. Please update this information if you find out how this works.)
 
 @section Utah GIS portal
 
