@@ -7,8 +7,6 @@
 
 SUBDIRS = src doc
 
-ACLOCAL_AMFLAGS = -I m4
-
 # Create the ChangeLog file from the git log
 dist-hook:
 	if test -d "$(srcdir)/.git" && type git > /dev/null 2>&1; then \
