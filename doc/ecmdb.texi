@@ -196,18 +196,19 @@ ecmdb finalize /ecmdb/naturalearth/hyp-hr
 The SRTM 90m Digital Elevation Database version 4 is available from @url{http://srtm.csi.cgiar.org/}.
 It provides elevation data for the land masses of Earth.
 
-First, get all the ZIP files from @url{ftp://xftp.jrc.it/pub/srtmV4/tiff/} and unzip them all.
+First, get all the ZIP files from @url{ftp://xftp.jrc.it/pub/srtmV4/tiff/}. You don't need to unzip them;
+instead, you can build a list of special file names that allow GDAL to read the ZIP contents directly:
+@example
+for i in *.zip; do echo /vsizip/$i/`basename $i .zip`.tif; done > addlist.txt
+@end example
 
 Then:
 @example
 ecmdb create   /ecmdb/srtm4 -E earth-wgs84 -q 512 -l 9 -C elevation
-ecmdb add      /ecmdb/srtm4 *.tif
+ecmdb add      /ecmdb/srtm4 `cat addlist.txt`
 ecmdb commit   /ecmdb/srtm4
 ecmdb finalize /ecmdb/srtm4
 @end example
-
-(Note: it should be possible to add all files without unzipping them first via GDAL's support for ZIP
-file archives. Please update this information if you find out how this works.)
 
 @section Utah GIS portal
 
@@ -294,9 +295,17 @@ ecmdb finalize /ecmdb/mars-moc
 @image{mars-mola,,,,jpg}
 
 See @url{http://pds-geosciences.wustl.edu/missions/mgs/megdr.html}. You need
-the files @code{megt*.lbl} and @code{megt*.img}, preferably in the best available resolution.
+the files @code{megt*.lbl} and @code{megt*.img} in the best available resolution.
+These can be found in the @code{MEG128} and @code{POLAR} directories. From the
+@code{POLAR} directory, you only need the @code{megt_?_512_1.*} files.
 
-Unfortunately the original URL we used does not work anymore. Please find the new location and let us know.
+Build an ECM database:
+@example
+ecmdb create   /ecmdb/mars-mola -E mars-nasa -q 512 -l 6 -C elevation
+ecmdb add      /ecmdb/mars-mola megt*.lbl
+ecmdb commit   /ecmdb/mars-mola
+ecmdb finalize /ecmdb/mars-mola
+@end example
 
 @section HiRISE
 
@@ -314,24 +323,18 @@ TIFF file that is readable by all common tools:
 kdu_expand -i PSP_008648_1810_RED.JP2 -o PSP_008648_1810_RED.tiff
 @end example
 
-Since ECM databases do not yet support color definitions beyond 24 bit, you need to reduce the original
-colors to 24 bit:
+Since ECM databases do not yet support color definitions beyond 8 bit per channel,
+you need to tell GDAL to reduce the original 10 bit color range to 8 bit:
 @example
-gta from-gdal PSP_008648_1810_RED.tiff \
-  | gta component-compute -e 'c0=c0/1023*255' \
-  | gta component-convert -c uint8 \
-  | gta compress -m bzip2 \
-  > PSP_008648_1810_RED.gta
+gdal_translate -of VRT -scale 0 1023 0 255 PSP_008648_1810_RED.tiff hirise.vrt
 @end example
 
 Now you can import the file:
 @example
 ecmdb create   /ecmdb/mars-hirise -E mars-nasa -q 512 -l 16 -C texture -c 1
-ecmdb add      /ecmdb/mars-hirise --min 1 PSP_008648_1810_RED.gta
+ecmdb add      /ecmdb/mars-hirise --min 1 hirise.vrt
 ecmdb commit   /ecmdb/mars-hirise
 @end example
-
-(Note: if your version of GDAL does not support reading GTAs directly, you need to convert back to TIFF first.)
 
 You can add and commit more HiRISE images to the same database (even if they
 are from completely different locations) before finalizing it.
