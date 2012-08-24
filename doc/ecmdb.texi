@@ -314,24 +314,18 @@ TIFF file that is readable by all common tools:
 kdu_expand -i PSP_008648_1810_RED.JP2 -o PSP_008648_1810_RED.tiff
 @end example
 
-Since ECM databases do not yet support color definitions beyond 24 bit, you need to reduce the original
-colors to 24 bit:
+Since ECM databases do not yet support color definitions beyond 8 bit per channel,
+you need to tell GDAL to reduce the original 10 bit color range to 8 bit:
 @example
-gta from-gdal PSP_008648_1810_RED.tiff \
-  | gta component-compute -e 'c0=c0/1023*255' \
-  | gta component-convert -c uint8 \
-  | gta compress -m bzip2 \
-  > PSP_008648_1810_RED.gta
+gdal_translate -of VRT -scale 0 1023 0 255 PSP_008648_1810_RED.tiff hirise.vrt
 @end example
 
 Now you can import the file:
 @example
 ecmdb create   /ecmdb/mars-hirise -E mars-nasa -q 512 -l 16 -C texture -c 1
-ecmdb add      /ecmdb/mars-hirise --min 1 PSP_008648_1810_RED.gta
+ecmdb add      /ecmdb/mars-hirise --min 1 hirise.vrt
 ecmdb commit   /ecmdb/mars-hirise
 @end example
-
-(Note: if your version of GDAL does not support reading GTAs directly, you need to convert back to TIFF first.)
 
 You can add and commit more HiRISE images to the same database (even if they
 are from completely different locations) before finalizing it.
