@@ -59,11 +59,15 @@ extern "C" int ecmdb_version(int argc, char* argv[])
         ecmdb_version_help();
         return 0;
     }
-    msg::req_txt("%s (from package %s) version %s on %s\n"
-            "Copyright (C) 2012  Martin Lambers <marlam@marlam.de>.\n"
-            "All rights reserved.\n"
-            "There is NO WARRANTY, to the extent permitted by law.",
-            program_name, PACKAGE_NAME, VERSION, PLATFORM);
+    msg::req_txt("%s version %s on %s\n"
+            "Copyright (C) 2012 Computer Graphics Group, University of Siegen, Germany.\n"
+            "Written by Martin Lambers <martin.lambers@uni-siegen.de>.\n"
+            "See http://www.cg.informatik.uni-siegen.de/ for contact information.\n"
+            "This is free software. You may redistribute copies of it under the terms of "
+            "the GNU General Public License.\n"
+            "There is NO WARRANTY, to the extent permitted by law.\n"
+            "See %s for more information on this software.",
+            PACKAGE_NAME, PACKAGE_VERSION, PLATFORM, PACKAGE_URL);
     return 0;
 }
 
