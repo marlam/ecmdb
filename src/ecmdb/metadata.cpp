@@ -41,19 +41,22 @@ void metadata::set_quad_meta(const ecmdb& database,
         assert(database.type() == ecmdb::type_float32 || database.type() == ecmdb::type_int16);
         float min_elev = +std::numeric_limits<float>::max();
         float max_elev = -std::numeric_limits<float>::max();
-        for (int i = 0; i < database.total_quad_size() * database.total_quad_size(); i++) {
-            if (mask.ptr<uint8_t>()[i]) {
-                float x;
-                if (database.type() == ecmdb::type_float32) {
-                    x = data.ptr<float>()[i];
-                } else {
-                    x = data.ptr<int16_t>()[i];
+        for (int y = 0; y < database.quad_size(); y++) {
+            for (int x = 0; x < database.quad_size(); x++) {
+                int i = (y + database.overlap()) * database.total_quad_size() + x + database.overlap();
+                if (mask.ptr<uint8_t>()[i]) {
+                    float x;
+                    if (database.type() == ecmdb::type_float32) {
+                        x = data.ptr<float>()[i];
+                    } else {
+                        x = data.ptr<int16_t>()[i];
+                    }
+                    x = database.data_offset() + database.data_factor() * x;
+                    if (x < min_elev)
+                        min_elev = x;
+                    if (x > max_elev)
+                        max_elev = x;
                 }
-                x = database.data_offset() + database.data_factor() * x;
-                if (x < min_elev)
-                    min_elev = x;
-                if (x > max_elev)
-                    max_elev = x;
             }
         }
         meta->elevation.min = min_elev;
