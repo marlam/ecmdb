@@ -13,6 +13,7 @@ IMAGES = \
 	earth-bmng.jpg \
 	earth-natearth.jpg \
 	earth-srtm4.jpg \
+	earth-terrasarx.jpg \
 	earth-utah.jpg \
 	moon-wacdtm.jpg \
 	mars-moc.jpg \

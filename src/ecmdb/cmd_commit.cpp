@@ -60,7 +60,7 @@ extern "C" void ecmdb_commit_help(void)
 }
 
 static void commit(const std::string& dir, bool lossy_compression, int lossy_compression_quality,
-        ecmdb& database, ecmdb::global_metadata& global_metadata,
+        ecmdb& database, ecmdb::metadata& global_metadata,
         const std::vector<quadlist::entry>& added_quads,
         const std::vector<quadlist::entry>& uncommitted_quads,
         std::vector<quadlist::entry>& committed_quads);
@@ -92,7 +92,7 @@ extern "C" int ecmdb_commit(int argc, char* argv[])
         bool lossy_compression;
         int lossy_compression_quality;
         get_compression_info(arguments[0], &lossy_compression, &lossy_compression_quality);
-        ecmdb::global_metadata global_metadata;
+        ecmdb::metadata global_metadata;
         global_metadata.open(database.category(), dir);
         std::vector<quadlist::entry> added_quads = quadlist::read_addfiles(dir);
         std::vector<quadlist::entry> committed_quads = quadlist::read_commitfile(dir);
@@ -197,7 +197,7 @@ void load_quad_data(const std::string& dir, const ecmdb& database, int qs, int q
         std::unique_ptr<blob> mask(new blob());
         mask->resize(database.mask_size());
         bool all_valid;
-        ecmdb::quad_metadata meta;
+        ecmdb::metadata meta;
         database.load_quad(filename, data->ptr(), mask->ptr<uint8_t>(), &all_valid, &meta);
         if (all_valid) {
             std::memset(mask->ptr(), 0xff, database.mask_size());
@@ -212,7 +212,7 @@ void load_quad_data(const std::string& dir, const ecmdb& database, int qs, int q
 
 
 // Commit one quad of the highest level:
-static ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database,
+static ecmdb::metadata commit_quad(const std::string& dir, const ecmdb& database,
         bool lossy_compression, int lossy_compression_quality,
         int side, int qx, int qy, const std::vector<std::string>& ids);
 
@@ -223,7 +223,7 @@ static void commit_ll_quad(const std::string& dir, const ecmdb& database,
         int side, int level, int qx, int qy);
 
 void commit(const std::string& dir, bool lossy_compression, int lossy_compression_quality,
-        ecmdb& database, ecmdb::global_metadata& global_metadata,
+        ecmdb& database, ecmdb::metadata& global_metadata,
         const std::vector<quadlist::entry>& added_quads,
         const std::vector<quadlist::entry>& uncommitted_quads,
         std::vector<quadlist::entry>& committed_quads)
@@ -288,12 +288,12 @@ void commit(const std::string& dir, bool lossy_compression, int lossy_compressio
                         && added_quads[a].qy == qy; a++) {
                     ids.push_back(added_quads[a].datafile_id);
                 }
-                const ecmdb::global_metadata quad_global_metadata = commit_quad(dir, database,
+                const ecmdb::metadata quad_metadata = commit_quad(dir, database,
                         lossy_compression, lossy_compression_quality, side, qx, qy, ids);
                 #pragma omp critical
                 {
                     database.add_quad(side, qx, qy);
-                    metadata::update_global(database, quad_global_metadata, global_metadata);
+                    metadata::update_global(database, quad_metadata, global_metadata);
                     for (size_t u = u_index;
                             u < uncommitted_quads.size()
                             && uncommitted_quads[u].side == side
@@ -377,7 +377,7 @@ void commit(const std::string& dir, bool lossy_compression, int lossy_compressio
     }
 }
 
-ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database,
+ecmdb::metadata commit_quad(const std::string& dir, const ecmdb& database,
         bool lossy_compression, int lossy_compression_quality,
         int qs, int qx, int qy, const std::vector<std::string>& ids)
 {
@@ -388,13 +388,8 @@ ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database
     if (ids.size() == 1) {
         // Common case optimization: only one quad: simply make a hard link
         std::string added_filename = base_filename + '.' + ids[0] + ".gta";
-        ecmdb::quad_metadata quad_metadata;
+        ecmdb::metadata quad_metadata;
         database.load_quad_meta(added_filename, &quad_metadata);
-        ecmdb::global_metadata quad_global_metadata(database.category());
-        if (database.category() == ecmdb::category_elevation) {
-            quad_global_metadata.elevation.min = quad_metadata.elevation.min;
-            quad_global_metadata.elevation.max = quad_metadata.elevation.max;
-        }
         try {
             fio::link(added_filename, quad_filename);
         } catch (exc &e) {
@@ -406,7 +401,7 @@ ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database
                 throw e;
             }
         }
-        return quad_global_metadata;
+        return quad_metadata;
     }
 
     blob data(database.data_size());
@@ -421,7 +416,7 @@ ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database
         added_data[i].resize(database.data_size());
         added_mask[i].resize(database.mask_size());
         bool all_valid;
-        ecmdb::quad_metadata quad_metadata;
+        ecmdb::metadata quad_metadata;
         database.load_quad(added_filename, added_data[i].ptr(), added_mask[i].ptr<uint8_t>(), &all_valid, &quad_metadata);
         if (all_valid)
             std::memset(added_mask[i].ptr(), 0xff, database.mask_size());
@@ -476,20 +471,15 @@ ecmdb::global_metadata commit_quad(const std::string& dir, const ecmdb& database
         }
     }
 
-    ecmdb::quad_metadata quad_metadata;
+    ecmdb::metadata quad_metadata;
     metadata::set_quad_meta(database, data, mask, &quad_metadata);
-    ecmdb::global_metadata quad_global_metadata(database.category());
-    if (database.category() == ecmdb::category_elevation) {
-        quad_global_metadata.elevation.min = quad_metadata.elevation.min;
-        quad_global_metadata.elevation.max = quad_metadata.elevation.max;
-    }
 
     if (!none_valid) {
         database.save_quad(quad_filename, data.ptr(), mask.ptr<const uint8_t>(), all_valid, &quad_metadata,
                 lossy_compression ? 2 : 1, lossy_compression_quality);
     }
 
-    return quad_global_metadata;
+    return quad_metadata;
 }
 
 /* Helper functions to copy and clear quad areas */
@@ -817,7 +807,7 @@ static void commit_ll_quad(const std::string& dir, const ecmdb& database,
 
     // save
     if (!none_valid) {
-        ecmdb::quad_metadata quad_metadata;
+        ecmdb::metadata quad_metadata;
         metadata::set_quad_meta(database, data, mask, &quad_metadata);
         fio::mkdir_p(dir, base_filename.substr(0, base_filename.find_last_of('/')));
         database.save_quad(quad_filename, data.ptr(), mask.ptr<const uint8_t>(), all_valid, &quad_metadata,

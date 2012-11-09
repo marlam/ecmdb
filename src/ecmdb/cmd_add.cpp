@@ -544,7 +544,8 @@ void add_quad(const ecmdb& database, const std::string& database_dir, bool lossy
             throw exc(dstfilename + ": GDAL read error");
         }
         // Apply the given min/max boundaries, and check for valid values
-        if (database.type() == ecmdb::type_float32 || minimum.size() > 0 || maximum.size() > 0) {
+        if (database.type() == ecmdb::type_float32 || database.category() == ecmdb::category_sar_amplitude
+                || minimum.size() > 0 || maximum.size() > 0) {
             all_valid = true;
             none_valid = true;
             for (int e = 0; e < database.total_quad_size() * database.total_quad_size(); e++) {
@@ -568,6 +569,8 @@ void add_quad(const ecmdb& database, const std::string& database_dir, bool lossy
                         if (minimum.size() > 0 && x < mi)
                             e_valid = false;
                         if (maximum.size() > 0 && x > ma)
+                            e_valid = false;
+                        if (database.category() == ecmdb::category_sar_amplitude && x <= 0.0f)
                             e_valid = false;
                     }
                     if (!e_valid) {
@@ -593,7 +596,7 @@ void add_quad(const ecmdb& database, const std::string& database_dir, bool lossy
             }
         }
         // Save metadata
-        ecmdb::quad_metadata quad_meta;
+        ecmdb::metadata quad_meta;
         metadata::set_quad_meta(database, data, mask, &quad_meta);
         // Save the quad
         std::string basename = ecmdb::quad_filename(qs, ql, qx, qy);

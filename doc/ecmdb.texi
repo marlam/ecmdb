@@ -254,6 +254,27 @@ ecmdb finalize /ecmdb/utah-2m
 
 For the 5m model, use @code{-l 14} for the @code{create} command due to the lower resolution.
 
+@section TerraSAR-X
+
+@image{earth-terrasarx,,,,jpg}
+
+Several TerraSAR-X demonstration datasets are available from the
+@url{http://www.astrium-geo.com/en/23-sample-imagery,TerraSAR-X Sample Imagery Site}.
+
+The files can be imported directly. Be sure to select a geocoded file in GeoTIFF format.
+
+The example shown above is from the TerraSAR-X StripMap Image of the Strait of
+Gibraltar (plus a DEM and a little lighting).  In StripMap mode, TerraSAR-X
+achieves a resolution of up to 3 m on ground, which according to @code{ecmdb
+resolutions} corresponds to level 13 (with a quad size of 512). So we need 14
+levels (0-13) to store the data without resolution loss.
+@example
+ecmdb create   /ecmdb/terrasar-x/gibraltar -E earth-wgs84 -q 512 -l 14 -C sar-amplitude
+ecmdb add      /ecmdb/terrasar-x/gibraltar IMAGE_HH_SRA_strip_008.tif
+ecmdb commit   /ecmdb/terrasar-x/gibraltar
+ecmdb finalize /ecmdb/terrasar-x/gibraltar
+@end example
+
 @node Data Sets For Moon
 @chapter Data Sets For Moon
 

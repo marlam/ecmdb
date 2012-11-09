@@ -42,7 +42,7 @@ extern "C" void ecmdb_create_help(void)
             "                           Overrides -E. Default: earth-wgs84.\n"
             "[-q|--quad-size=q]         Quad size (q x q). Default 512.\n"
             "-l|--levels=l              Number of levels in the new database.\n"
-            "-C|--category=C            Category: elevation, texture, or data (= undefined).\n"
+            "-C|--category=C            Category: elevation, texture, sar-amplitude, or data (= undefined).\n"
             "[-t|--type=t]              Data type: uint8, int16, or float32. Default depends on category.\n"
             "[-c|--channels=c]          Number of channels. Default depends on category.\n"
             "[-o|--overlap=o]           Quad overlap. Default 2 for elevation, 1 otherwise.\n"
@@ -77,6 +77,7 @@ extern "C" int ecmdb_create(int argc, char* argv[])
     category_names.push_back("elevation");
     category_names.push_back("texture");
     category_names.push_back("data");
+    category_names.push_back("sar-amplitude");
     opt::string category("category", 'C', opt::required, category_names);
     options.push_back(&category);
     std::vector<std::string> type_names;
@@ -135,6 +136,7 @@ extern "C" int ecmdb_create(int argc, char* argv[])
     ecmdb::category_t db_category =
         (category.value().compare("elevation") == 0 ? ecmdb::category_elevation
          : category.value().compare("texture") == 0 ? ecmdb::category_texture
+         : category.value().compare("sar-amplitude") == 0 ? ecmdb::category_sar_amplitude
          : ecmdb::category_data);
     ecmdb::type_t db_type;
     if (type.values().empty()) {
@@ -146,6 +148,9 @@ extern "C" int ecmdb_create(int argc, char* argv[])
             db_type = ecmdb::type_uint8;
             break;
         case ecmdb::category_data:
+            db_type = ecmdb::type_float32;
+            break;
+        case ecmdb::category_sar_amplitude:
             db_type = ecmdb::type_float32;
             break;
         default:
@@ -170,6 +175,9 @@ extern "C" int ecmdb_create(int argc, char* argv[])
         case ecmdb::category_data:
             db_channels = 1;
             break;
+        case ecmdb::category_sar_amplitude:
+            db_channels = 1;
+            break;
         default:
             db_channels = 1;
             break;
@@ -182,6 +190,9 @@ extern "C" int ecmdb_create(int argc, char* argv[])
         switch (db_category) {
         case ecmdb::category_elevation:
             db_overlap = 2;
+            break;
+        case ecmdb::category_sar_amplitude:
+            db_overlap = 9;
             break;
         default:
             db_overlap = 1;
@@ -218,7 +229,7 @@ extern "C" int ecmdb_create(int argc, char* argv[])
                 db_category, db_type, db_channels, db_overlap, offset.value(), factor.value(),
                 short_description.value(), db_description);
         database.write(arguments[0]);
-        ecmdb::global_metadata metadata;
+        ecmdb::metadata metadata;
         metadata.create(db_category);
         metadata.write(arguments[0]);
         set_compression_info(arguments[0], lossy.value(), lossy_quality.value());

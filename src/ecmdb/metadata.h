@@ -29,9 +29,9 @@ namespace metadata
 {
     void set_quad_meta(const ecmdb& database,
             const blob& data, const blob& mask,
-            ecmdb::quad_metadata* meta);
-    void update_global(const ecmdb& database, const ecmdb::global_metadata& quad_global_metadata,
-            ecmdb::global_metadata& global_metadata);
+            ecmdb::metadata* meta);
+    void update_global(const ecmdb& database, const ecmdb::metadata& quad_metadata,
+            ecmdb::metadata& global_metadata);
 }
 
 #endif
