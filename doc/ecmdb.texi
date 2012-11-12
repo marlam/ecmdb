@@ -10,9 +10,9 @@
 This manual was last updated @value{UPDATED} for version
 @value{VERSION} of ecmdb.
 
-Copyright @copyright{} 2012
-Computer Graphics Group, University of Siegen, Germany.
-Written by Martin Lambers (@email{martin.lambers@@uni-siegen.de}).
+Copyright @copyright{} 2012@*
+Computer Graphics Group, University of Siegen, Germany.@*
+Written by Martin Lambers (@email{martin.lambers@@uni-siegen.de}).@*
 See @url{http://www.cg.informatik.uni-siegen.de/} for contact information.
 
 @quotation
@@ -74,8 +74,8 @@ huge data sets.
 
 For more information about ECM, see @url{http://ecm-planet.sourceforge.net/}.
 
-Building an ECM database is expensive. To make best use of multi-processor systems and clusters,
-this task is split into multiple steps:
+Building an ECM database can be computationally expensive. To make best use of
+multi-processor systems and clusters, this task is split into multiple steps:
 @enumerate
 @item Create a database.@*
 Use the command @code{ecmdb create} to create a database. This step defines the
@@ -98,14 +98,14 @@ using the command @code{ecmdb commit}.@*
 This command will automatically use all processors in a multi-processor system.
 Only one @code{commit} command can be used on a given database at any given time,
 but you can still run more @code{add} commands in parallel or after the
-@code{commit} command; you just need to rerun @code{commit} afterwards to use th
+@code{commit} command; you just need to rerun @code{commit} afterwards to use the
 new files.@*
 See @code{ecmdb commit --help} for more information.
 @item Finalize a database.@*
 Once all relevant input files are committed to a database, you can optionally
 run the command @code{ecmdb finalize} to remove all management information from
 the database and save disk space. Note that you cannot add or commit more input
-files to finalized database.@*
+files to a finalized database.@*
 See @code{ecmdb finalize --help} for more information.
 @end enumerate
 
@@ -235,8 +235,12 @@ ecmdb commit   /ecmdb/utah-hro2006
 ecmdb finalize /ecmdb/utah-hro2006
 @end example
 
-You may want to run multiple concurrent @code{add} commands in a cluster because this will take some time!
-(With lossless compression, all steps took 114 hours and 54 minutes on a single Intel Core i7-930 machine.)
+You may want to run multiple concurrent @code{add} commands in a cluster
+because this will take some time.
+With lossless compression, all steps took 114 hours and 54 minutes on a single
+Intel Core i7-930 machine.
+Now lossy compression is supported and is the default; this should result in
+better performance and significantly reduced disk usage.
 
 @subsection 2m and 5m Elevation Models
 
