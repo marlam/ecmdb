@@ -1,4 +1,4 @@
-dnl Copyright (C) 2009, 2010, 2011, 2012
+dnl Copyright (C) 2009, 2010, 2011, 2012, 2013
 dnl Computer Graphics Group, University of Siegen, Germany.
 dnl Written by Martin Lambers <martin.lambers@uni-siegen.de>.
 dnl See http://www.cg.informatik.uni-siegen.de/ for contact information.
@@ -69,6 +69,7 @@ if test "$ndebug" = "1"; then
 fi
 
 dnl Feature checks needed by the base modules
+AC_LANG_PUSH([C])
 dnl - dbg
 AC_CHECK_FUNCS([backtrace sigaction])
 dnl - fio
@@ -102,6 +103,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])], [], [CPPFLAGS="$CPPFLAGS_bak"; LDFLAGS=
 dnl - timer
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_CHECK_FUNCS([clock_gettime])
+AC_LANG_POP([C])
 
 dnl pkg-config (required to detect libraries)
 PKG_PROG_PKG_CONFIG([])

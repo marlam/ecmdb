@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013
  * Martin Lambers <marlam@marlam.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,7 +49,7 @@
 #if W32
 # include <climits>
 # define WIN32_LEAN_AND_MEAN    /* do not include more than necessary */
-# define _WIN32_WINNT 0x0600    /* Windows Vista or later */
+# define _WIN32_WINNT 0x0500    /* Windows 2000 or later */
 # include <windows.h>
 # include <shlwapi.h>
 # include <sys/locking.h>
@@ -200,9 +200,29 @@ static int link(const char *path1, const char *path2)
 #endif
 
 #ifndef HAVE_SYMLINK
+/* Load CreateSymbolicLink() at runtime since it is only available in Windows
+ * Vista and later, but we want the binary to run on XP, too. */
+typedef BOOL (WINAPI* CreateSymbolicLinkFuncType)(LPCSTR, LPCSTR, DWORD);
+static CreateSymbolicLinkFuncType CreateSymbolicLinkFunc = NULL;
+static BOOL CreateSymbolicLinkFuncInitialized = FALSE;
 static int symlink(const char *path1, const char *path2)
 {
-    if (CreateSymbolicLink(path2, path1, 0) == 0)
+    if (!CreateSymbolicLinkFuncInitialized)
+    {
+        HMODULE kernel32 = GetModuleHandle("kernel32.dll");
+        if (kernel32 != NULL)
+        {
+            CreateSymbolicLinkFunc = reinterpret_cast<CreateSymbolicLinkFuncType>(
+                    GetProcAddress(kernel32, "CreateSymbolicLinkA"));
+        }
+        CreateSymbolicLinkFuncInitialized = TRUE;
+    }
+    if (!CreateSymbolicLinkFunc)
+    {
+        errno = EPERM;
+        return -1;
+    }
+    if (CreateSymbolicLinkFunc(path2, path1, 0) == 0)
     {
         DWORD err = GetLastError();
         set_errno_from_last_error(err);
@@ -461,8 +481,9 @@ namespace fio
      * returned, file will be deleted) and a non-NULL 'pathname' to get mktempfile()
      * behaviour (name returned, file will not be deleted). If the function fails,
      * the returned stream will be NULL, and errno will be set. */
-    static void real_mktemp(const char *dir, const char *base, FILE **file, char **pathname)
+    static void real_mktemp(const char *dir, FILE **file, char **pathname)
     {
+        const char *base = PACKAGE_TARNAME "-tmp-";
         FILE *f;
         size_t baselen;
         size_t dirlen;
@@ -471,10 +492,6 @@ namespace fio
         int fd = -1;
         int saved_errno;
 
-        if (!base)
-        {
-            base = "tmp";
-        }
         dirlen = strlen(dir);
 
         /* The name prefix */
@@ -602,11 +619,11 @@ error_exit:
         return dir;
     }
 
-    FILE *tempfile(const std::string &base)
+    FILE *tempfile()
     {
         FILE *f;
 
-        real_mktemp(default_tmpdir(), !base.empty() ? base.c_str() : NULL, &f, NULL);
+        real_mktemp(default_tmpdir(), &f, NULL);
         if (!f)
         {
             throw exc(std::string("Cannot create temporary file: ") + std::strerror(errno), errno);
@@ -614,11 +631,10 @@ error_exit:
         return f;
     }
 
-    std::string mktempfile(FILE **f, const std::string &base, const std::string &dir)
+    std::string mktempfile(FILE **f, const std::string &dir)
     {
         char *filename;
-        real_mktemp(dir.empty() ? default_tmpdir() : to_sys(dir).c_str(),
-                !base.empty() ? base.c_str() : NULL, f, &filename);
+        real_mktemp(dir.empty() ? default_tmpdir() : to_sys(dir).c_str(), f, &filename);
         if (!(*f))
         {
             throw exc(std::string("Cannot create temporary file: ") + std::strerror(errno), errno);
@@ -628,11 +644,10 @@ error_exit:
         return from_sys(s);
     }
 
-    std::string mktempdir(const std::string &base, const std::string &dir)
+    std::string mktempdir(const std::string &dir)
     {
         char *dirname;
-        real_mktemp(dir.empty() ? default_tmpdir() : to_sys(dir).c_str(),
-                !base.empty() ? base.c_str() : NULL, NULL, &dirname);
+        real_mktemp(dir.empty() ? default_tmpdir() : to_sys(dir).c_str(), NULL, &dirname);
         if (!dirname)
         {
             throw exc(std::string("Cannot create temporary directory: ") + std::strerror(errno), errno);
