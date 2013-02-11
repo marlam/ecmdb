@@ -299,7 +299,7 @@ void add_file(const ecmdb& database, const std::string& database_dir, bool lossy
 
     // Loop over all sides of the Ellipsoid Cube Map and add the quads
     const char *side_name[6] = { "front", "right", "back", "left", "top", "bottom" };
-    std::string tempdir = fio::mktempdir("ecmdb-add-");
+    std::string tempdir = fio::mktempdir();
     for (int side = 0; side < 6; side++) {
         int quads_tl[2], quads_br[2];
         if (get_quads(database, gdal_dataset, ogr_transf[side], quads_tl, quads_br)) {
