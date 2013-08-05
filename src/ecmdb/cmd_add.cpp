@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2009, 2010, 2011, 2012
+ * Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013
  * Computer Graphics Group, University of Siegen, Germany.
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>.
  * See http://www.cg.informatik.uni-siegen.de/ for contact information.
@@ -51,27 +51,30 @@
 extern "C" void ecmdb_add_help(void)
 {
     msg::req_txt(
-            "add DIR [--srs=SRS] [--min=MIN[,...]] [--max=MAX[,...]] datafile...\n"
+            "add DIR [--srs=SRS] [--nodata=ND[,...]] [--min=MIN[,...]] [--max=MAX[,...]] datafile...\n"
             "\n"
             "Add the given datafiles to the database at the directory DIR.\n"
             "Currently, only GDAL-readable datafiles with georeference information can be added.\n"
             "The --srs option allows to set/override the spatial reference system (SRS) of the datafile(s), "
             "in the same way that the '-a_srs' option of gdal_translate works.\n"
-            "When the --min or --max options are used, then all input values that are less than the minimum "
-            "or greater than the maximum are ignored. You can give a single value for all channels, or a list "
-            "of values for each channel.");
+            "The --nodata option allows to specify the NODATA value, either as a single value for all channels, "
+            "or as a list of per-channel values. Similarily, the --min and --max options specify minimum "
+            "and maximum values. Values outside that range are ignored.");
 }
 
 static void add_file(const ecmdb& database, const std::string& database_dir, bool lossy_compression, int lossy_compression_quality,
         const std::string& filename,
         const std::string& addfilename, FILE* addfile,
-        const std::string& srs_wkt, const std::vector<float>& minimum, const std::vector<float>& maximum);
+        const std::string& srs_wkt,
+        const std::vector<float>& nodata, const std::vector<float>& minimum, const std::vector<float>& maximum);
 
 extern "C" int ecmdb_add(int argc, char* argv[])
 {
     std::vector<opt::option *> options;
     opt::info help("help", '\0', opt::optional);
     options.push_back(&help);
+    opt::tuple<float> nodata("nodata", '\0', opt::optional, std::vector<float>());
+    options.push_back(&nodata);
     opt::tuple<float> minimum("min", '\0', opt::optional, std::vector<float>());
     options.push_back(&minimum);
     opt::tuple<float> maximum("max", '\0', opt::optional, std::vector<float>());
@@ -124,7 +127,7 @@ extern "C" int ecmdb_add(int argc, char* argv[])
                 try {
                     add_file(database, arguments[0], lossy_compression, lossy_compression_quality,
                             arguments[j], addfilename, addfile,
-                            srs_wkt, minimum.value(), maximum.value());
+                            srs_wkt, nodata.value(), minimum.value(), maximum.value());
                 }
                 catch (std::exception& _e) {
                     e = _e;
@@ -155,12 +158,14 @@ static void add_quad(const ecmdb& database, const std::string& database_dir, boo
         int qs, int ql, int qx, int qy,
         const std::string& addfilename, FILE* addfile,
         GDALDataset* gdal_dataset, const std::string& wkt, const std::string& id, const std::string& tempdir,
-        const std::string& srs_wkt, const std::vector<float>& minimum, const std::vector<float>& maximum);
+        const std::string& srs_wkt,
+        const std::vector<float>& nodata, const std::vector<float>& minimum, const std::vector<float>& maximum);
 
 void add_file(const ecmdb& database, const std::string& database_dir, bool lossy_compression, int lossy_compression_quality,
         const std::string& filename,
         const std::string& addfilename, FILE* addfile,
-        const std::string& srs_wkt, const std::vector<float>& minimum, const std::vector<float>& maximum)
+        const std::string& srs_wkt,
+        const std::vector<float>& nodata, const std::vector<float>& minimum, const std::vector<float>& maximum)
 {
     GDALDataset *gdal_dataset;
     GDALDataType gdal_datatype;
@@ -217,6 +222,9 @@ void add_file(const ecmdb& database, const std::string& database_dir, bool lossy
             || (database.category() == ecmdb::category_texture && gdal_channels == database.channels() + 1));
     if (gdal_channels - (gdal_dataset_has_alpha ? 1 : 0) != database.channels()) {
         throw exc(filename + ": number of bands does not match database number of channels");
+    }
+    if (nodata.size() > 1 && nodata.size() != static_cast<size_t>(gdal_channels)) {
+        throw exc(filename + ": number of bands does not match number of given nodata values");
     }
     if (minimum.size() > 1 && minimum.size() != static_cast<size_t>(gdal_channels)) {
         throw exc(filename + ": number of bands does not match number of given minimum values");
@@ -310,7 +318,7 @@ void add_file(const ecmdb& database, const std::string& database_dir, bool lossy
                 for (int qx = quads_tl[0]; qx <= quads_br[0]; qx++) {
                     add_quad(database, database_dir, lossy_compression, lossy_compression_quality,
                             side, database.levels() - 1, qx, qy,
-                            addfilename, addfile, gdal_dataset, wkt[side], id, tempdir, srs_wkt, minimum, maximum);
+                            addfilename, addfile, gdal_dataset, wkt[side], id, tempdir, srs_wkt, nodata, minimum, maximum);
                 }
             }
         } else {
@@ -420,7 +428,8 @@ void add_quad(const ecmdb& database, const std::string& database_dir, bool lossy
         int qs, int ql, int qx, int qy,
         const std::string& addfilename, FILE* addfile,
         GDALDataset* gdal_dataset, const std::string& wkt, const std::string& id, const std::string& tempdir,
-        const std::string& srs_wkt, const std::vector<float>& minimum, const std::vector<float>& maximum)
+        const std::string& srs_wkt,
+        const std::vector<float>& nodata, const std::vector<float>& minimum, const std::vector<float>& maximum)
 {
     int quads_in_level = (1 << ql);
     int total_quad_size = database.quad_size() + 2 * database.overlap();
@@ -445,7 +454,11 @@ void add_quad(const ecmdb& database, const std::string& database_dir, bool lossy
         throw exc(ENOMEM);
     }
     for (int i = 0; i < gdal_dataset->GetRasterCount(); i++) {
-        nodata_real[i] = gdal_dataset->GetRasterBand(i + 1)->GetNoDataValue(NULL);
+        if (nodata.size() > 0) {
+            nodata_real[i] = (nodata.size() > 1 ? nodata[i] : nodata[0]);
+        } else {
+            nodata_real[i] = gdal_dataset->GetRasterBand(i + 1)->GetNoDataValue(NULL);
+        }
         nodata_imag[i] = 0.0;
     }
 
