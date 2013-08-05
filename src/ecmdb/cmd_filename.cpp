@@ -22,6 +22,7 @@
 
 #include <limits>
 #include <cmath>
+#include <cinttypes>
 
 #include <ecmdb/ecmdb.h>
 
@@ -80,8 +81,8 @@ extern "C" int ecmdb_filename(int argc, char* argv[])
                 if (xy.size() >= 4 && xy.substr(xy.size() - 4) == ".gta") {
                     std::string istr = xy.substr(0, xy.size() - 4);
                     str::replace(istr, "/", "");
-                    unsigned long long i;
-                    if (std::sscanf(istr.c_str(), "%llx", &i) == 1) {
+                    uint_least64_t i;
+                    if (std::sscanf(istr.c_str(), "%" SCNxLEAST64, &i) == 1) {
                         qx = i & ((1 << ql) - 1);
                         qy = i >> ql;
                         if (qx >= 0 && qx < (1 << ql) && qy >= 0 && qy < (1 << ql))
