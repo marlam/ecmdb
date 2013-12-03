@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, 2010, 2011, 2012
+ * Copyright (C) 2009, 2010, 2011, 2012, 2013
  * Martin Lambers <marlam@marlam.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LRU_CACHE_H
-#define LRU_CACHE_H
+#ifndef LRU_H
+#define LRU_H
 
 #include <map>
 
 #include "dbg.h"
-#include "exc.h"
-#include "thread.h"
+#include "pth.h"
 
 
 template<typename ELEMENT_TYPE, typename KEY_TYPE, bool AUTO_SHRINK = true>
@@ -82,7 +81,7 @@ public:
     {
     }
 
-    ~lru_cache()
+    virtual ~lru_cache()
     {
         this->clear();
     }
@@ -115,13 +114,9 @@ public:
         try {
             element = get(key);
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
         return element;
@@ -161,13 +156,9 @@ public:
         try {
             put(key, element, size);
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
     }
@@ -188,13 +179,9 @@ public:
         try {
             clear();
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
     }
@@ -212,13 +199,9 @@ public:
         try {
             set_max_size(max_size);
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
     }
@@ -236,13 +219,9 @@ public:
         try {
             shrink();
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
     }
@@ -268,13 +247,9 @@ public:
         try {
             r = check();
         }
-        catch (exc& e) {
+        catch (...) {
             _mutex.unlock();
-            throw e;
-        }
-        catch (std::exception& e) {
-            _mutex.unlock();
-            throw exc(e);
+            throw;
         }
         _mutex.unlock();
         return r;

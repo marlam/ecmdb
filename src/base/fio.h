@@ -31,8 +31,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include "exc.h"
-
 
 /**
  * C-style IO for C++, with exception handling.
@@ -105,6 +103,7 @@ namespace fio
     // advisory locks (for the whole file)
     bool readlock(FILE *f, const std::string &filename = std::string(""));
     bool writelock(FILE *f, const std::string &filename = std::string(""));
+    void unlock(FILE *f, const std::string &filename = std::string(""));
 
     // fread and fwrite replacements
     void read(void *dest, size_t s, size_t n, FILE *f, const std::string &filename = std::string(""));
@@ -186,8 +185,9 @@ namespace fio
     // dirname name
     std::string dirname(const std::string &name);
 
-    // Get special directories
+    // Get special paths
     std::string homedir();
+    std::string executable();
 };
 
 #endif

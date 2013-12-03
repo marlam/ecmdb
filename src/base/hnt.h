@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012
+ * Copyright (C) 2011, 2012, 2013
  * Martin Lambers <marlam@marlam.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef COMPILER_H
-#define COMPILER_H
+#ifndef HNT_H
+#define HNT_H
 
 #ifdef __GNUC__
 # define likely(x)      __builtin_expect(!!(x), 1)

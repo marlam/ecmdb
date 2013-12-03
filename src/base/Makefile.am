@@ -12,13 +12,13 @@ libbase_la_SOURCES = \
 	fio.h fio.cpp \
 	dbg.h dbg.cpp \
 	exc.h exc.cpp \
-	intcheck.h \
+	chk.h \
 	opt.h opt.cpp \
-	timer.h timer.cpp \
-	s11n.h s11n.cpp \
-	blob.h \
-	thread.h thread.cpp \
-	compiler.h \
+	tmr.h tmr.cpp \
+	ser.h ser.cpp \
+	blb.h \
+	pth.h pth.cpp \
+	hnt.h \
         sys.h sys.cpp \
-	lru-cache.h \
+	lru.h \
 	gettext.h

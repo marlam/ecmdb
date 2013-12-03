@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012
+ * Copyright (C) 2011, 2012, 2013
  * Martin Lambers <marlam@marlam.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <string>
 
-#include "s11n.h"
+#include "ser.h"
 
 
 class uuid : public serializable

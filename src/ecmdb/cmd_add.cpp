@@ -38,9 +38,9 @@
 #include "opt.h"
 #include "exc.h"
 #include "fio.h"
-#include "blob.h"
+#include "blb.h"
 #include "sys.h"
-#include "thread.h"
+#include "pth.h"
 
 #include "uuid.h"
 #include "quadlist.h"

@@ -54,7 +54,7 @@ public:
 
 namespace s11n
 {
-    // Functions needed to human-readable save/load:
+    // Functions needed for human-readable save/load:
     // - When saving a group of values contained in a serializable class, use startgroup()/endgroup()
     // - When loading back, get the next name/value pair and interpret it
     void startgroup(std::ostream& os, const char* name);

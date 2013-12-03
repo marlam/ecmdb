@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012
+ * Copyright (C) 2011, 2012, 2013
  * Computer Graphics Group, University of Siegen, Germany.
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>.
  * See http://www.cg.informatik.uni-siegen.de/ for contact information.
@@ -29,7 +29,7 @@
 #include "opt.h"
 #include "fio.h"
 #include "exc.h"
-#include "thread.h"
+#include "pth.h"
 
 #include "quadlist.h"
 #include "compression-info.h"

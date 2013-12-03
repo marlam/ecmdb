@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012
+ * Copyright (C) 2011, 2012, 2013
  * Martin Lambers <marlam@marlam.de>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,13 +29,13 @@
 # include <sched.h>
 #endif
 
-#if !defined(HAVE_SYSCONF) || !defined(HAVE_SCHED_YIELD)
+#if HAVE_SYSCONF && HAVE_SCHED_YIELD
+#else
 # define WIN32_LEAN_AND_MEAN    /* do not include more than necessary */
 # define _WIN32_WINNT 0x0500    /* Windows 2000 or later */
 # include <windows.h>
 #endif
 
-#include "intcheck.h"
 #include "sys.h"
 
 
@@ -81,10 +81,10 @@ void sys::msleep(unsigned long msecs)
 #if HAVE_NANOSLEEP
     struct timespec ts;
     ts.tv_sec = msecs / 1000UL;
-    ts.tv_nsec = (msecs - 1000UL * ts.tv_sec) * 1000UL * 1000UL;
+    ts.tv_nsec = (msecs - 1000UL * ts.tv_sec) * 1000ULL * 1000ULL;
     nanosleep(&ts, NULL);
 #else
-    usleep(checked_mul(msecs, 1000UL));
+    Sleep(msecs);
 #endif
 }
 
@@ -93,10 +93,10 @@ void sys::usleep(unsigned long usecs)
 #if HAVE_NANOSLEEP
     struct timespec ts;
     ts.tv_sec = usecs / (1000UL * 1000UL);
-    ts.tv_nsec = (usecs - 1000UL * 1000UL * ts.tv_sec) * 1000ULL;
+    ts.tv_nsec = (usecs - 1000ULL * 1000ULL * ts.tv_sec) * 1000ULL;
     nanosleep(&ts, NULL);
 #else
-    usleep(usecs);
+    Sleep(usecs >= 1000UL ? usecs / 1000UL : 1);
 #endif
 }
 
@@ -108,7 +108,7 @@ void sys::sleep(unsigned long secs)
     ts.tv_nsec = 0;
     nanosleep(&ts, NULL);
 #else
-    usleep(checked_mul(secs, 1000UL * 1000UL));
+    Sleep(secs * 1000UL);
 #endif
 }
 
