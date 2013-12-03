@@ -58,16 +58,16 @@ extern "C" int ecmdb_finalize(int argc, char* argv[])
     }
 
     std::string dir = arguments[0];
-    std::string infofilename = dir + "/ecmdb.txt";
-    FILE *infofile = NULL;
+    std::string lockfilename = dir + "/lock";
+    FILE *lockfile = NULL;
     try {
         exc e;
         bool abort = false;
         ecmdb database;
         database.open(dir);
-        FILE *infofile = fio::open(infofilename, "r+");
-        if (!fio::writelock(infofile, infofilename)) {
-            throw exc(dir + ": database is locked, probably by a commit or finalize command.");
+        FILE *lockfile = fio::open(lockfilename, "w");
+        if (!fio::writelock(lockfile, lockfilename)) {
+            throw exc(dir + ": database is locked.");
         }
         std::vector<quadlist::entry> added_quads = quadlist::read_addfiles(dir);
         std::vector<quadlist::entry> committed_quads = quadlist::read_commitfile(dir);
@@ -125,12 +125,12 @@ extern "C" int ecmdb_finalize(int argc, char* argv[])
             }
             remove_compression_info(dir);
         }
-        try { fio::close(infofile, infofilename); } catch (...) {}
-        infofile = NULL;
+        try { fio::close(lockfile, lockfilename); } catch (...) {}
+        lockfile = NULL;
     }
     catch (std::exception& e) {
-        if (infofile) {
-            try { fio::close(infofile, infofilename); } catch (...) {}
+        if (lockfile) {
+            try { fio::close(lockfile, lockfilename); } catch (...) {}
         }
         msg::err_txt("%s", e.what());
         return 1;

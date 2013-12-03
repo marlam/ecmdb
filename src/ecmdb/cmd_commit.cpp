@@ -80,14 +80,14 @@ extern "C" int ecmdb_commit(int argc, char* argv[])
     }
 
     std::string dir = arguments[0];
-    std::string infofilename = dir + "/ecmdb.txt";
-    FILE *infofile = NULL;
+    std::string lockfilename = dir + "/lock";
+    FILE *lockfile = NULL;
     try {
         ecmdb database;
         database.open(dir);
-        FILE *infofile = fio::open(infofilename, "r+");
-        if (!fio::writelock(infofile, infofilename)) {
-            throw exc(dir + ": database is locked, probably by another commit command.");
+        FILE *lockfile = fio::open(lockfilename, "w");
+        if (!fio::writelock(lockfile, lockfilename)) {
+            throw exc(dir + ": database is locked.");
         }
         bool lossy_compression;
         int lossy_compression_quality;
@@ -107,14 +107,15 @@ extern "C" int ecmdb_commit(int argc, char* argv[])
                     database, global_metadata, added_quads, uncommitted_quads, committed_quads);
         }
         quadlist::write_commitfile(dir, committed_quads);
+        fio::unlock(lockfile, lockfilename);
         database.write(dir);
         global_metadata.write(dir);
-        try { fio::close(infofile, infofilename); } catch (...) {}
-        infofile = NULL;
+        try { fio::close(lockfile, lockfilename); } catch (...) {}
+        lockfile = NULL;
     }
     catch (std::exception& e) {
-        if (infofile) {
-            try { fio::close(infofile, infofilename); } catch (...) {}
+        if (lockfile) {
+            try { fio::close(lockfile, lockfilename); } catch (...) {}
         }
         msg::err_txt("%s", e.what());
         return 1;
@@ -386,10 +387,29 @@ ecmdb::metadata commit_quad(const std::string& dir, const ecmdb& database,
     const std::string base_filename = quad_filename.substr(0, quad_filename.length() - 4);      // remove ".gta"
 
     if (ids.size() == 1) {
-        // Common case optimization: only one quad: simply make a hard link
+        // Common case optimization: only one quad
         std::string added_filename = base_filename + '.' + ids[0] + ".gta";
         ecmdb::metadata quad_metadata;
         database.load_quad_meta(added_filename, &quad_metadata);
+#if W32
+        // On Windows, making hard links requires administrator privileges.
+        // Do a copy instead, and overwrite an existing file if necessary.
+        FILE* fr = fio::open(added_filename, "r");
+        FILE* fw = fio::open(quad_filename, "w");
+        unsigned char *buf = new unsigned char[16384];
+        for (;;) {
+            size_t rr = ::fread(buf, 1, 16384, fr);
+            if (rr <= 0)
+                break;
+            size_t rw = ::fwrite(buf, 1, rr, fw);
+            if (rw != rr)
+                throw exc(dir + ": cannot copy quad file.");
+        }
+        delete[] buf;
+        fio::close(fr, added_filename);
+        fio::close(fw, quad_filename);
+#else
+        // simply make a hard link
         try {
             fio::link(added_filename, quad_filename);
         } catch (exc &e) {
@@ -401,6 +421,7 @@ ecmdb::metadata commit_quad(const std::string& dir, const ecmdb& database,
                 throw e;
             }
         }
+#endif
         return quad_metadata;
     }
 
@@ -562,7 +583,13 @@ static void set_quad_area(
         qd = qc.locked_get(ql);
         if (!qd) {
             mutex* load_mutex = qlm.get(ql);
-            if (load_mutex->trylock()) {
+            if (W32 || load_mutex->trylock()) {
+#if W32
+                // On Windows, the trylock() above always fails, and I have no idea why.
+                // As a workaround, don't use it, and always lock. This is less efficient:
+                // quads may be loaded multiple times.
+                load_mutex->lock();
+#endif
                 // this thread wins the race to load this quad
                 quad_data* new_qd = NULL;
                 size_t new_qd_size;
@@ -592,7 +619,13 @@ static void set_quad_area(
         qd = qc.locked_get(ql);
         if (!qd) {
             mutex* load_mutex = qlm.get(ql);
-            if (load_mutex->trylock()) {
+            if (W32 || load_mutex->trylock()) {
+#if W32
+                // On Windows, the trylock() above always fails, and I have no idea why.
+                // As a workaround, don't use it, and always lock. This is less efficient:
+                // quads may be loaded multiple times.
+                load_mutex->lock();
+#endif
                 // this thread wins the race to load this quad
                 quad_data* new_qd = NULL;
                 size_t new_qd_size;
