@@ -430,8 +430,8 @@ ecmdb::metadata commit_quad(const std::string& dir, const ecmdb& database,
     blob mask(database.mask_size());
     std::memset(mask.ptr(), 0, database.mask_size());
 
-    blob added_data[ids.size()];
-    blob added_mask[ids.size()];
+    std::vector<blob> added_data(ids.size());
+    std::vector<blob> added_mask(ids.size());
     for (size_t i = 0; i < ids.size(); i++) {
         std::string added_filename = base_filename + '.' + ids[i] + ".gta";
         added_data[i].resize(database.data_size());
