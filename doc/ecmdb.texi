@@ -72,7 +72,7 @@ object, for example photos and elevation models of Earth, Moon, or Mars.
 An ECM database can be used by a rendering program to efficiently display
 huge data sets.
 
-For more information about ECM, see @url{http://ecm-planet.sourceforge.net/}.
+For more information about ECM, see @url{https://marlam.de/ecm}.
 
 Building an ECM database can be computationally expensive. To make best use of
 multi-processor systems and clusters, this task is split into multiple steps:
